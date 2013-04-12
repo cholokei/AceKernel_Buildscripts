@@ -142,4 +142,6 @@ else
 	echo -e "${bldred}Failed to compile kernel! ${txtrst}"
 fi;
 
+time2=$(date +%s.%N)
 
+echo "${bldcya}Total time elapsed: ${txtrst}${bldcya}$(echo "($time2 - $time1) / 60"|bc ) minutes ($(echo "$time2 - $time1"|bc ) seconds) ${txtrst}"
