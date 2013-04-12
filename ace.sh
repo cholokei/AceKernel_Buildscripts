@@ -64,6 +64,10 @@ KERNEL_SUBLEVEL=$(cat ${KERNELDIR}/Makefile | grep '^SUBLEVEL = *' | sed 's/SUBL
 if [ "$DEVICE" == "dalikt" ]
 then
 	MODEL=SHV-E120K
+	KERNEL_CMDLINE="androidboot.hardware=qcom kgsl.mmutype=gpummu vmalloc=400M usb_id_pin_rework=true"
+	KERNEL_BASE=0x48000000
+	KERNEL_PAGESIZE=2048
+	KERNEL_RAMDISKADDR=0x49400000
 elif [ "$DEVICE" == "dalilgt" ]
 then
 	MODEL=SHV-E120L
@@ -140,6 +144,18 @@ if [ -e ${KERNELDIR}/arch/arm/boot/zImage ]; then
 	echo -e "${bldylw}Now you can find zImage, modules and config in ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME} ${txtrst}"
 else
 	echo -e "${bldred}Failed to compile kernel! ${txtrst}"
+fi;
+
+if [ -e ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/zImage -a -e ${OUTDIR}/${READY_KERNEL}/"$DEVICE"_ramdisk.gz -a -e ${OUTDIR}/${READY_KERNEL}/mkbootimg ]; then
+	cp ${OUTDIR}/${READY_KERNEL}/"$DEVICE"_ramdisk.gz ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/ramdisk.gz
+	cp ${OUTDIR}/${READY_KERNEL}/mkbootimg ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/mkbootimg
+	cd ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}
+	chmod 777 mkbootimg
+	./mkbootimg --kernel zImage --ramdisk ramdisk.gz --cmdline "$KERNEL_CMDLINE" --base "$KERNEL_BASE" --pagesize "$KERNEL_PAGESIZE" --ramdiskaddr "$KERNEL_RAMDISKADDR" -o boot.img
+	rm -rf mkbootimg
+	echo -e "${bldylw}Now you can find boot.img to flash in ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME} ${txtrst}"
+else
+	exit 0
 fi;
 
 time2=$(date +%s.%N)
