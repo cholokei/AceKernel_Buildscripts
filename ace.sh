@@ -52,6 +52,10 @@ THREADS=$(expr ${NUMBEROFCPUS} \* 64)
 export KERNELDIR=`readlink -f .`
 export OUTDIR=`readlink -f ..`
 export READY_KERNEL="READY_KERNEL"
+export MODULES=`find -name *.ko`
+
+export BUILD_DATE=$(date +"%Y%m%d")
+export BUILD_TIME=$(date +"%H%M")
 
 KERNEL_VERSION=$(cat ${KERNELDIR}/Makefile | grep '^VERSION = *' | sed 's/VERSION = //g')
 KERNEL_PATCHLEVEL=$(cat ${KERNELDIR}/Makefile | grep '^PATCHLEVEL = *' | sed 's/PATCHLEVEL = //g')
@@ -111,12 +115,31 @@ fi;
 # get time of startup
 time1=$(date +%s.%N)
 
+echo -e ">>> ${bldgrn}${KERNEL_CONFIG} ${txtrst}"
 make ${KERNEL_CONFIG}
-echo -e
 
 echo -e "${bldgrn}Starting Ace Kernel compilation for "$MODEL"("$DEVICE") ${txtrst}"
 echo -e "${bldylw}Linux Kernel "$KERNEL_VERSION"."$KERNEL_PATCHLEVEL"."$KERNEL_SUBLEVEL" ${txtrst}"
 nice -n 10 make -j"$THREADS"
-#if [ -e ${KERNELDIR}/arch/arm/boot/zImage ]; then
-#	res2=$(date +%s.%N)
+
+if [ -e ${KERNELDIR}/arch/arm/boot/zImage ]; then
+	echo -e "${bldgrn}Ace Kernel for "$MODEL"("$DEVICE") compiled sucessfully! ${txtrst}"
+	if [ -e ${OUTDIR}/${READY_KERNEL} ]; then
+	cd ${OUTDIR}/${READY_KERNEL}
+	else
+	cd ${OUTDIR}; mkdir ${READY_KERNEL}
+	cd ${OUTDIR}/${READY_KERNEL}
+	fi;
+	
+	mkdir "$MODEL"_${BUILD_DATE}-${BUILD_TIME}
+	cd ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}
+	cp ${KERNELDIR}/arch/arm/boot/zImage ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/zImage
+	#cp ${KERNELDIR}/${MODULES} ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}
+	cd ${KERNELDIR}; find -name "*.ko" -exec cp {} ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME} \;
+	cp ${KERNELDIR}/.config ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/config
+	echo -e "${bldylw}Now you can find zImage, modules and config in ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME} ${txtrst}"
+else
+	echo -e "${bldred}Failed to compile kernel! ${txtrst}"
+fi;
+
 
