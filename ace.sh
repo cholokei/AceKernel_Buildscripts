@@ -54,6 +54,7 @@ export OUTDIR=`readlink -f ..`
 export READY_KERNEL="READY_KERNEL"
 export MODULES=`find -name *.ko`
 
+export KERNEL_NAME="AceKernel-JB"
 export BUILD_DATE=$(date +"%Y%m%d")
 export BUILD_TIME=$(date +"%H%M")
 
@@ -134,14 +135,11 @@ if [ -e ${KERNELDIR}/arch/arm/boot/zImage ]; then
 	cd ${OUTDIR}; mkdir ${READY_KERNEL}
 	cd ${OUTDIR}/${READY_KERNEL}
 	fi;
-	
 	mkdir "$MODEL"_${BUILD_DATE}-${BUILD_TIME}
 	cd ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}
 	cp ${KERNELDIR}/arch/arm/boot/zImage ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/zImage
-	#cp ${KERNELDIR}/${MODULES} ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}
 	cd ${KERNELDIR}; find -name "*.ko" -exec cp {} ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME} \;
 	cp ${KERNELDIR}/.config ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/config
-	echo -e "${bldylw}Now you can find zImage, modules and config in ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME} ${txtrst}"
 else
 	echo -e "${bldred}Failed to compile kernel! ${txtrst}"
 fi;
@@ -153,10 +151,30 @@ if [ -e ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/zImage -a
 	chmod 777 mkbootimg
 	./mkbootimg --kernel zImage --ramdisk ramdisk.gz --cmdline "$KERNEL_CMDLINE" --base "$KERNEL_BASE" --pagesize "$KERNEL_PAGESIZE" --ramdiskaddr "$KERNEL_RAMDISKADDR" -o boot.img
 	rm -rf mkbootimg
-	echo -e "${bldylw}Now you can find boot.img to flash in ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME} ${txtrst}"
-else
-	exit 0
+	rm -rf ramdisk.gz
 fi;
+
+if [ -e ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/boot.img -a -e ${OUTDIR}/${READY_KERNEL}/update-binary -a -e ${OUTDIR}/${READY_KERNEL}/updater-script ]; then
+	cd ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}
+	mkdir tmp; cd tmp; mkdir META-INF; cd META-INF; mkdir com; cd com; mkdir google; cd google; mkdir android; cd ../../..; mkdir system; cd system; mkdir lib; cd lib; mkdir modules	
+	cp ${OUTDIR}/${READY_KERNEL}/update-binary ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/tmp/META-INF/com/google/android/update-binary
+	cp ${OUTDIR}/${READY_KERNEL}/updater-script ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/tmp/META-INF/com/google/android/updater-script
+	cd ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}
+	find -name "*.ko" \! -path "/tmp/*" -exec cp {} ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/tmp/system/lib/modules \;
+	cp ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/boot.img ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/tmp/boot.img
+	cd ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/tmp
+	zip ${KERNEL_NAME}_${BUILD_DATE}_"$MODEL".zip -r META-INF/* system/* boot.img
+	tar cvf ${KERNEL_NAME}_${BUILD_DATE}_"$MODEL".tar boot.img
+	mv ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/tmp/${KERNEL_NAME}_${BUILD_DATE}_"$MODEL".zip ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/${KERNEL_NAME}_${BUILD_DATE}_"$MODEL".zip
+	mv ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/tmp/${KERNEL_NAME}_${BUILD_DATE}_"$MODEL".tar ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/${KERNEL_NAME}_${BUILD_DATE}_"$MODEL".tar
+	cd ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}; rm -rf tmp
+fi;
+
+if [ -e ${KERNELDIR}/arch/arm/boot/zImage ]; then
+	echo -e "${bldylw}Now you can find all build result objects in ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME} ${txtrst}"
+fi;
+
+cd ${KERNELDIR}
 
 time2=$(date +%s.%N)
 
