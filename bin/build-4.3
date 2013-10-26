@@ -88,6 +88,15 @@ else
 fi
 
 KERNEL_CONFIG="cyanogenmod_"$DEVICE"_defconfig"
+MAKE="make -j"$THREADS""
+
+# make directory for compiling output
+if [ -e ${OUTDIR}/${READY_KERNEL} ]; then
+	echo "${bldylw}OUTPUT=${OUTDIR}/${READY_KERNEL} ${txtrst}"
+else
+	cd ${OUTDIR}; mkdir ${READY_KERNEL}
+	echo "${bldylw}OUTPUT=${OUTDIR}/${READY_KERNEL} ${txtrst}"
+fi;
 
 # remove previous zImage files
 cd ${KERNELDIR}
@@ -120,16 +129,14 @@ make ${KERNEL_CONFIG}
 
 echo -e "${bldgrn}Starting CyanogenMod Kernel compilation for "$MODEL"("$DEVICE") ${txtrst}"
 echo -e "${bldylw}Linux Kernel "$KERNEL_VERSION"."$KERNEL_PATCHLEVEL"."$KERNEL_SUBLEVEL" ${txtrst}"
-nice -n 10 make -j"$THREADS"
+
+# start compiling kernel, outputting the compile log
+script -q ${OUTDIR}/${READY_KERNEL}/compile_${BUILD_DATE}-${BUILD_TIME}.log -c "
+$MAKE"
 
 if [ -e ${KERNELDIR}/arch/arm/boot/zImage ]; then
 	echo -e "${bldgrn}CyanogenMod Kernel for "$DEVICE" compiled sucessfully! ${txtrst}"
-	if [ -e ${OUTDIR}/${READY_KERNEL} ]; then
 	cd ${OUTDIR}/${READY_KERNEL}
-	else
-	cd ${OUTDIR}; mkdir ${READY_KERNEL}
-	cd ${OUTDIR}/${READY_KERNEL}
-	fi;
 	mkdir "$MODEL"_${BUILD_DATE}-${BUILD_TIME}
 	cd ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}
 	cp ${KERNELDIR}/arch/arm/boot/zImage ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/zImage
