@@ -60,7 +60,7 @@ if [ "$DEVICE" == "dalikt" ]
 then
 	MODEL=dalikt
 	#KERNEL_CMDLINE="androidboot.hardware=qcom kgsl.mmutype=gpummu vmalloc=400M usb_id_pin_rework=true"
-	#KERNEL_CMDLINE="androidboot.hardware=qcom usb_id_pin_rework=true zcache"
+	#KERNEL_CMDLINE="androidboot.hardware=qcom usb_id_pin_rework=true no_console_suspend=true zcache"
 	KERNEL_BASE=0x48000000
 	KERNEL_PAGESIZE=2048
 	KERNEL_RAMDISKADDR=0x49400000
@@ -154,7 +154,7 @@ if [ -e ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/zImage -a
 
 if [ "$DEVICE" == "dalikt" ]
 then
-	./mkbootimg --kernel zImage --ramdisk ramdisk.gz --cmdline "androidboot.hardware=qcom usb_id_pin_rework=true zcache" --base 0x48000000 --pagesize 2048 --ramdiskaddr 0x49400000 -o boot.img
+	./mkbootimg --kernel zImage --ramdisk ramdisk.gz --cmdline "androidboot.hardware=qcom usb_id_pin_rework=true no_console_suspend=true zcache" --base 0x48000000 --pagesize 2048 --ramdiskaddr 0x49400000 -o boot.img
 #elif [ "$DEVICE" == "dalilgt" ]
 #then
 #
