@@ -1,0 +1,124 @@
+#!/bin/bash
+
+###############################################################################
+# Millet Kernel build script by Cholokei - leesl0416@naver.com                #
+###############################################################################
+
+THREADS="$1"
+#####################
+DEVICE=milletwifikx
+MODEL=milletwifikx
+#####################
+
+# Colorize and add text parameters
+red=$(tput setaf 1)             #  red
+grn=$(tput setaf 2)             #  green
+ylw=$(tput setaf 3)             #  yellow
+blu=$(tput setaf 4)             #  blue
+ppl=$(tput setaf 5)             #  purple
+cya=$(tput setaf 6)             #  cyan
+txtbld=$(tput bold)             #  Bold
+bldred=${txtbld}$(tput setaf 1) #  red
+bldgrn=${txtbld}$(tput setaf 2) #  green
+bldylw=${txtbld}$(tput setaf 3) #  yellow
+bldblu=${txtbld}$(tput setaf 4) #  blue
+bldppl=${txtbld}$(tput setaf 5) #  purple
+bldcya=${txtbld}$(tput setaf 6) #  cyan
+txtrst=$(tput sgr0)             #  Reset
+
+# system compiler
+export ARCH=arm
+export CROSS_COMPILE=$HOME/prebuilts/gcc/linux-x86/arm/arm-eabi-4.8/bin/arm-eabi-
+#export CROSS_COMPILE=$HOME/prebuilts/gcc/linux-x86/arm/arm-eabi-4.7/bin/arm-eabi-
+
+# location
+export KERNELDIR=`readlink -f .`
+export OUTDIR=`readlink -f ..`
+export READY_KERNEL="MILLET_KERNEL"
+export MODULES=`find -name *.ko`
+
+export KERNEL_NAME="millet-kernel"
+export BUILD_DATE=$(date +"%Y%m%d")
+export BUILD_TIME=$(date +"%H%M")
+
+
+#
+# $HOME/bin/${KERNEL_NAME}/ramdisk_"$DEVICE".gz
+# $HOME/bin/${KERNEL_NAME}/mkbootimg
+# $HOME/bin/${KERNEL_NAME}/update-binary
+# $HOME/bin/${KERNEL_NAME}/updater-script_"$MODEL"
+#
+
+KERNEL_VERSION=$(cat ${KERNELDIR}/Makefile | grep '^VERSION = *' | sed 's/VERSION = //g')
+KERNEL_PATCHLEVEL=$(cat ${KERNELDIR}/Makefile | grep '^PATCHLEVEL = *' | sed 's/PATCHLEVEL = //g')
+KERNEL_SUBLEVEL=$(cat ${KERNELDIR}/Makefile | grep '^SUBLEVEL = *' | sed 's/SUBLEVEL = //g')
+
+#################################################################################################################################################################################
+#KERNEL_CONFIG="msm8226-sec_defconfig VARIANT_DEFCONFIG=msm8226-sec_milletwifikx_defconfig SELINUX_DEFCONFIG=selinux_defconfig TIMA_DEFCONFIG=tima8226_defconfig"
+KERNEL_CONFIG="milletwifikx_defconfig"
+#################################################################################################################################################################################
+MAKE="make -j"$THREADS""
+
+
+# make directory for compiling output
+if [ -e ${OUTDIR}/${READY_KERNEL} ]; then
+	echo "${bldylw}OUTPUT=${OUTDIR}/${READY_KERNEL} ${txtrst}"
+else
+	cd ${OUTDIR}; mkdir ${READY_KERNEL}
+	echo "${bldylw}OUTPUT=${OUTDIR}/${READY_KERNEL} ${txtrst}"
+fi;
+
+# remove previous zImage files
+cd ${KERNELDIR}
+if [ -e ${KERNELDIR}/arch/arm/boot/zImage ]; then
+	rm ${KERNELDIR}/arch/arm/boot/zImage
+fi;
+
+# remove all old modules before compile
+cd ${KERNELDIR}
+for i in $MODULES; do
+	rm -f $i
+done;
+
+echo -e "${bldred}Removed old zImage and modules ${txtrst}"
+
+# remove old defconfig
+if [ -e ${KERNELDIR}/.config ]; then
+	rm ${KERNELDIR}/.config
+	echo -e "${bldred}Removed old configuration ${txtrst}"
+fi;
+
+# get time of startup
+time1=$(date +%s.%N)
+
+echo -e ">>> ${bldgrn}${KERNEL_CONFIG} ${txtrst}"
+make ${KERNEL_CONFIG}
+
+echo -e "${bldgrn}Starting Millet Kernel compilation for "$DEVICE" ${txtrst}"
+echo -e "${bldylw}Linux Kernel "$KERNEL_VERSION"."$KERNEL_PATCHLEVEL"."$KERNEL_SUBLEVEL" ${txtrst}"
+
+# start compiling kernel, outputting the compile log
+script -q ${OUTDIR}/${READY_KERNEL}/compile_${BUILD_DATE}-${BUILD_TIME}.log -c "
+$MAKE"
+
+if [ -e ${KERNELDIR}/arch/arm/boot/zImage ]; then
+	echo -e "${bldgrn}Millet Kernel for "$DEVICE" compiled sucessfully! ${txtrst}"
+	cd ${OUTDIR}/${READY_KERNEL}
+	mkdir "$MODEL"_${BUILD_DATE}-${BUILD_TIME}
+	cd ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}
+	cp ${KERNELDIR}/arch/arm/boot/zImage ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/zImage
+	cd ${KERNELDIR}; find -name "*.ko" -exec cp {} ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME} \;
+	cp ${KERNELDIR}/.config ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME}/config
+else
+	echo -e "${bldred}Failed to compile kernel! ${txtrst}"
+fi;
+
+if [ -e ${KERNELDIR}/arch/arm/boot/zImage ]; then
+	echo -e "${bldylw}Now you can find all build result objects in ${OUTDIR}/${READY_KERNEL}/"$MODEL"_${BUILD_DATE}-${BUILD_TIME} ${txtrst}"
+fi;
+
+cd ${KERNELDIR}
+
+time2=$(date +%s.%N)
+
+echo "${bldcya}Total time elapsed: ${txtrst}${bldcya}$(echo "($time2 - $time1) / 60"|bc ) minutes ($(echo "$time2 - $time1"|bc ) seconds) ${txtrst}"
